@@ -3,7 +3,7 @@
 # you can uncomment CONFIG += USE_VTK #
 #######################################
 CONFIG       += warn_on release
-#CONFIG      += USE_VTK
+CONFIG      += USE_VTK
 #DEFINES     += NO_QWT
 DEFINES      += USE_GOOGLE_WEBKIT_FORK
 #mobile devices without opengl
@@ -104,6 +104,7 @@ SOURCES      += tkAppInit.cpp \
                 QVTKWidget.cpp
 
 INCLUDEPATH  += /usr/local/include/vtk-5.10
+INCLUDEPATH  += /usr/include/tcl8.5
 LIBS += /usr/local/lib/vtk-5.10/libvtkCommon.so
 LIBS += /usr/local/lib/vtk-5.10/libvtkCommonTCL.so
 LIBS += /usr/local/lib/vtk-5.10/libvtkDICOMParser.so
@@ -136,8 +137,8 @@ LIBS += /usr/local/lib/vtk-5.10/libvtkVolumeRenderingTCL.so
 LIBS += /usr/local/lib/vtk-5.10/libvtkWidgets.so
 LIBS += /usr/local/lib/vtk-5.10/libvtkWidgetsTCL.so
 LIBS += /usr/local/lib/vtk-5.10/libvtkzlib.so
-LIBS += /usr/lib64/libtcl8.5.so
-LIBS += /usr/lib64/libX11.so.6
+LIBS += /usr/lib/x86_64-linux-gnu/libtcl8.5.so
+LIBS += /usr/lib/x86_64-linux-gnu/libX11.so.6
 LIBS += /usr/local/lib/vtk-5.10/libvtksqlite.so
 LIBS += /usr/local/lib/vtk-5.10/libvtkNetCDF_cxx.so
 LIBS += /usr/local/lib/vtk-5.10/libvtkNetCDF.so

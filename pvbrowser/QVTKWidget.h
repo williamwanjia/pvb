@@ -31,267 +31,249 @@
 #ifndef Q_VTK_WIDGET_H
 #define Q_VTK_WIDGET_H
 
-#include <qwidget.h>
-#include <qtimer.h>
-class QPaintEngine;
+#include <QOpenGLWidget>
 
-class vtkRenderWindow;
+#include "vtkNew.h"                // needed for vtkNew
+#include "vtkSmartPointer.h"       // needed for vtkSmartPointer
+
+#include <QtCore/QObject>
+
+#include "vtkRenderWindowInteractor.h"
+#include "vtkCommand.h"
+
+class QOpenGLDebugLogger;
+class QOpenGLFramebufferObject;
 class QVTKInteractor;
-#include <vtkRenderWindowInteractor.h>
-#include <vtkCommand.h>
-#include <vtkConfigure.h>
-class vtkUnsignedCharArray;
+class QVTKInteractorInternal;
+class QVTKInteractorAdapter;
+class QVTKWidgetObserver;
+class vtkGenericOpenGLRenderWindow;
+class vtkRenderWindowInteractor;
+class QEvent;
+class QSignalMapper;
+class QTimer;
 
-#if defined(Q_WS_MAC) && QT_VERSION >= 0x040000
-#include <Carbon/Carbon.h>    // Event handling for dirty region
-#endif
-
-//we link it locally
-//#if defined(WIN32) && defined(VTK_BUILD_SHARED_LIBS)
-//#if defined(QVTK_EXPORTS) || defined(QVTKWidgetPlugin_EXPORTS)
-//#define QVTK_EXPORT __declspec( dllexport )
-//#else
-//#define QVTK_EXPORT __declspec( dllimport ) 
-//#endif
-//#else
-#define QVTK_EXPORT
-//#endif
-
-//! QVTKWidget displays a VTK window in a Qt window.
-class QVTK_EXPORT QVTKWidget : public QWidget
+class QVTKWidget : public QOpenGLWidget
 {
   Q_OBJECT
+  typedef QOpenGLWidget Superclass;
+public:
+  QVTKWidget(QWidget* parent = Q_NULLPTR, Qt::WindowFlags f = Qt::WindowFlags());
+  ~QVTKWidget() override;
 
-  Q_PROPERTY(bool automaticImageCacheEnabled
-             READ isAutomaticImageCacheEnabled
-             WRITE setAutomaticImageCacheEnabled)
-  Q_PROPERTY(double maxRenderRateForImageCache
-             READ maxRenderRateForImageCache
-             WRITE setMaxRenderRateForImageCache)
+  //@{
+  /**
+   * Get/Set the currently used vtkGenericOpenGLRenderWindow.
+   */
+  void SetRenderWindow(vtkGenericOpenGLRenderWindow* win);
+  void SetRenderWindow(vtkRenderWindow* win);
+  virtual vtkRenderWindow* GetRenderWindow();
+  //@}
 
-  public:
-#if QT_VERSION < 0x040000
-    //! constructor for Qt 3
-    QVTKWidget(QWidget* parent = NULL, const char* name = NULL);
-#else
-    //! constructor for Qt 4
-    QVTKWidget(QWidget* parent = NULL);
-#endif
-    //! destructor
-    virtual ~QVTKWidget();
+  /**
+   * Get the QVTKInteractor that was either created by default or set by the user.
+   */
+  virtual QVTKInteractor* GetInteractor();
 
-    // Description:
-    // Set the vtk render window, if you wish to use your own vtkRenderWindow
-    void SetRenderWindow(vtkRenderWindow*);
-    
-    // Description:
-    // Get the vtk render window.
-    vtkRenderWindow* GetRenderWindow();
-    
-    // Description:
-    // Get the Qt/vtk interactor that was either created by default or set by the user
-    QVTKInteractor* GetInteractor();
-    
-    // Description:
-    // Enum for additional event types supported.
-    // These events can be picked up by command observers on the interactor
-    enum vtkCustomEvents
-    {
-      ContextMenuEvent = vtkCommand::UserEvent + 100,
-      DragEnterEvent,
-      DragMoveEvent,
-      DragLeaveEvent,
-      DropEvent
-    };
+  /**
+   * Sets up vtkRenderWindow ivars using QSurfaceFormat.
+   */
+  static void copyFromFormat(const QSurfaceFormat& format, vtkRenderWindow* win);
 
-    // Description:
-    // Enables/disables automatic image caching.  If disabled (the default),
-    // QVTKWidget will not call saveImageToCache() on its own.
-    virtual void setAutomaticImageCacheEnabled(bool flag);
-    virtual bool isAutomaticImageCacheEnabled() const;
+  /**
+   * Using the vtkRenderWindow, setup QSurfaceFormat.
+   */
+  static void copyToFormat(vtkRenderWindow* win, QSurfaceFormat& format);
 
-    // Description:
-    // If automatic image caching is enabled, then the image will be cached
-    // after every render with a DesiredUpdateRate that is greater than
-    // this parameter.  By default, the vtkRenderWindowInteractor will
-    // change the desired render rate depending on the user's
-    // interactions. (See vtkRenderWindow::DesiredUpdateRate,
-    // vtkRenderWindowInteractor::DesiredUpdateRate and
-    // vtkRenderWindowInteractor::StillUpdateRate for more details.)
-    virtual void setMaxRenderRateForImageCache(double rate);
-    virtual double maxRenderRateForImageCache() const;
+  /**
+   * Returns a typical QSurfaceFormat suitable for most applications using
+   * QVTKWidget. Note that this is not the QSurfaceFormat that gets used
+   * if none is specified. That is set using `QSurfaceFormat::setDefaultFormat`.
+   */
+  static QSurfaceFormat defaultFormat();
 
-    // Description:
-    // Returns the current image in the window.  If the image cache is up
-    // to date, that is returned to avoid grabbing other windows.
-    virtual vtkUnsignedCharArray* cachedImage();
-    
-#if QT_VERSION < 0x040000
-    // Description:
-    // Handle reparenting of this widget in Qt 3.x
-    virtual void reparent(QWidget* parent, const QPoint& p, bool showit);
-#endif
-    
-    // Description:
-    // Handle showing of the Widget
-    virtual void showEvent(QShowEvent*);
+  /**
+   * Enable or disable support for HiDPI displays.
+   */
+  virtual void setEnableHiDPI(bool enable);
 
-    virtual QPaintEngine* paintEngine() const;
+signals:
+  /**
+   * This signal will be emitted whenever a mouse event occurs within the QVTK window.
+   */
+  void mouseEvent(QMouseEvent* event);
 
-  signals:
-    // Description:
-    // This signal will be emitted whenever a mouse event occurs
-    // within the QVTK window
-    void mouseEvent(QMouseEvent* event);
+protected slots:
+  /**
+   * Called as a response to `QOpenGLContext::aboutToBeDestroyed`. This may be
+   * called anytime during the widget lifecycle. We need to release any OpenGL
+   * resources allocated in VTK work in this method.
+   */
+  virtual void cleanupContext();
 
-    // Description:
-    // This signal will be emitted whenever the cached image goes from clean
-    // to dirty.
-    void cachedImageDirty();
+private slots:
+  /**
+   * recreates the FBO used for VTK rendering.
+   */
+  void recreateFBO();
 
-    // Description:
-    // This signal will be emitted whenever the cached image is refreshed.
-    void cachedImageClean();
+  /**
+   * called before the render window starts to render. We ensure that this->FBO
+   * is bound and ready to use.
+   */
+  void startEventCallback();
 
+protected:
+  bool event(QEvent* evt) Q_DECL_OVERRIDE;
+  void initializeGL() Q_DECL_OVERRIDE;
+  void resizeGL(int w, int h) Q_DECL_OVERRIDE;
+  void paintGL() Q_DECL_OVERRIDE;
 
-  public slots:
-    // Description:
-    // This will mark the cached image as dirty.  This slot is automatically
-    // invoked whenever the render window has a render event or the widget is
-    // resized.  Your application should invoke this slot whenever the image in
-    // the render window is changed by some other means.  If the image goes
-    // from clean to dirty, the cachedImageDirty() signal is emitted.
-    void markCachedImageAsDirty();
+  void mousePressEvent(QMouseEvent* event) Q_DECL_OVERRIDE;
+  void mouseMoveEvent(QMouseEvent* event) Q_DECL_OVERRIDE;
+  void mouseReleaseEvent(QMouseEvent* event) Q_DECL_OVERRIDE;
+  void mouseDoubleClickEvent(QMouseEvent* event) Q_DECL_OVERRIDE;
 
-    // Description:
-    // If the cached image is dirty, it is updated with the current image in
-    // the render window and the cachedImageClean() signal is emitted.
-    void saveImageToCache();
+  /**
+   * This method is called to indicate that vtkRenderWindow needs to reinitialize
+   * itself before the next render (done in QVTKWidget::paintGL).
+   * This is needed when the context gets recreated
+   * or the default FrameBufferObject gets recreated, for example.
+   */
+  void requireRenderWindowInitialization();
 
-  protected:
-    // overloaded resize handler
-    virtual void resizeEvent(QResizeEvent* event);
-    // overloaded move handler
-    virtual void moveEvent(QMoveEvent* event);
-    // overloaded paint handler
-    virtual void paintEvent(QPaintEvent* event);
+  /**
+   * This method may be called in `paintGL` to request VTK to do a render i.e.
+   * trigger render on the render window via its interactor.
+   *
+   * It will return true if render (or an equivalent action) was performed to
+   * update the frame buffer made available to VTK for rendering with latest
+   * rendering.
+   *
+   * Default implementation never returns false. However, subclasses can return
+   * false to indicate to QVTKWidget that it cannot generate a reasonable
+   * image to be displayed in QVTKWidget. In which case, the `paintGL`
+   * call will return leaving the `defaultFramebufferObject` untouched.
+   *
+   * Since by default `QOpenGLWidget::UpdateBehavior` is set to
+   * QOpenGLWidget::PartialUpdate, this means whatever was rendered in the frame
+   * buffer in most recent successful call will be preserved, unless the widget
+   * was forced to recreate the FBO as a result of resize or screen change.
+   *
+   * @sa Section @ref RenderAndPaint.
+   */
+  virtual bool renderVTK();
 
-    // overloaded mouse press handler
-    virtual void mousePressEvent(QMouseEvent* event);
-    // overloaded mouse move handler
-    virtual void mouseMoveEvent(QMouseEvent* event);
-    // overloaded mouse release handler
-    virtual void mouseReleaseEvent(QMouseEvent* event);
-    // overloaded key press handler
-    virtual void keyPressEvent(QKeyEvent* event);
-    // overloaded key release handler
-    virtual void keyReleaseEvent(QKeyEvent* event);
-    // overloaded enter event
-    virtual void enterEvent(QEvent*);
-    // overloaded leave event
-    virtual void leaveEvent(QEvent*);
-#ifndef QT_NO_WHEELEVENT
-    // overload wheel mouse event
-    virtual void wheelEvent(QWheelEvent*);
-#endif
-    // overload focus event
-    virtual void focusInEvent(QFocusEvent*);
-    // overload focus event
-    virtual void focusOutEvent(QFocusEvent*);
-    // overload Qt's event() to capture more keys
-    bool event( QEvent* e );
-    
-    // overload context menu event
-    virtual void contextMenuEvent(QContextMenuEvent*);
-    // overload drag enter event
-    virtual void dragEnterEvent(QDragEnterEvent*);
-    // overload drag move event
-    virtual void dragMoveEvent(QDragMoveEvent*);
-    // overload drag leave event
-    virtual void dragLeaveEvent(QDragLeaveEvent*);
-    // overload drop event
-    virtual void dropEvent(QDropEvent*);
-     
-    // the vtk render window
-    vtkRenderWindow* mRenWin;
-    
-    // set up an X11 window based on a visual and colormap
-    // that VTK chooses
-    void x11_setup_window();
+protected:
+  vtkSmartPointer<vtkGenericOpenGLRenderWindow> RenderWindow;
+  QVTKInteractorAdapter* InteractorAdaptor;
 
-#if defined(Q_WS_MAC) && QT_VERSION < 0x040000
-    void macFixRect();
-    virtual void setRegionDirty(bool);
-    virtual void macWidgetChangedWindow();
-#endif    
+  bool EnableHiDPI;
+  int OriginalDPI;
 
-#if defined(Q_WS_MAC) && QT_VERSION >= 0x040000
-    EventHandlerUPP DirtyRegionHandlerUPP;
-    EventHandlerRef DirtyRegionHandler;
-    static OSStatus DirtyRegionProcessor(EventHandlerCallRef er, EventRef event, void*);
-#endif
+private:
+  Q_DISABLE_COPY(QVTKWidget);
 
-  private slots:
-    void internalMacFixRect();
+  /**
+   * Called when vtkCommand::WindowFrameEvent is fired by the
+   * vtkGenericOpenGLRenderWindow.
+   */
+  void windowFrameEventCallback();
 
-  protected:
-    
-    vtkUnsignedCharArray* mCachedImage;
-    bool cachedImageCleanFlag;
-    bool automaticImageCache;
-    double maxImageCacheRenderRate;
-  
-  private:
-    //! unimplemented operator=
-    QVTKWidget const& operator=(QVTKWidget const&);
-    //! unimplemented copy
-    QVTKWidget(const QVTKWidget&);
-
+  QOpenGLFramebufferObject* FBO;
+  bool InPaintGL;
+  bool DoVTKRenderInPaintGL;
+  vtkNew<QVTKWidgetObserver> Observer;
+  friend class QVTKWidgetObserver;
+  QOpenGLDebugLogger* Logger;
 };
 
-// .NAME QVTKInteractor - An interactor for the QVTKWidget.
-// .SECTION Description
-// QVTKInteractor is an interactor for a QVTKWiget.
-
-class QVTK_EXPORT QVTKInteractor : public QObject, public vtkRenderWindowInteractor
+// internal class, do not use
+class QVTKInteractorInternal : public QObject
 {
   Q_OBJECT
+public:
+  QVTKInteractorInternal(QVTKInteractor* p);
+  ~QVTKInteractorInternal() override;
+public Q_SLOTS:
+  void TimerEvent(int id);
+public:
+  QSignalMapper* SignalMapper;
+  typedef std::map<int, QTimer*> TimerMap;
+  TimerMap Timers;
+  QVTKInteractor* Parent;
+};
+
+/**
+ * @class QVTKInteractor
+ * @brief - an interactor for QVTKWidget (and QVTKWiget).
+ *
+ * QVTKInteractor handles relaying Qt events to VTK.
+ * @sa QVTKWidget
+ */
+
+class QVTKInteractor : public vtkRenderWindowInteractor
+{
 public:
   static QVTKInteractor* New();
   vtkTypeMacro(QVTKInteractor,vtkRenderWindowInteractor);
 
-  // Description:
-  // Overloaded terminiate app, which does nothing in Qt.
-  // Use qApp->exit() instead.
-  virtual void TerminateApp();
-  
-  // Description:
-  // Overloaded start method does nothing.
-  // Use qApp->exec() instead.
-  virtual void Start();
- 
-  // Description:
-  // Overloaded create timer method for creating Qt timers.
-  virtual int CreateTimer(int);
-  
-  // Description:
-  // Overloaded destroy timer method for destroying Qt timers.
-  virtual int DestroyTimer();
+  /**
+   * Enum for additional event types supported.
+   * These events can be picked up by command observers on the interactor.
+   */
+  enum vtkCustomEvents
+  {
+    ContextMenuEvent = vtkCommand::UserEvent + 100,
+    DragEnterEvent,
+    DragMoveEvent,
+    DragLeaveEvent,
+    DropEvent
+  };
 
-public slots:
-  // timer event slot
-  virtual void TimerEvent();
+  /**
+   * Overloaded terminate app, which does nothing in Qt.
+   * Use qApp->exit() instead.
+   */
+  void TerminateApp() override;
+
+  /**
+   * Overloaded start method does nothing.
+   * Use qApp->exec() instead.
+   */
+  void Start() override;
+  void Initialize() override;
+
+  /**
+   * Start listening events on 3DConnexion device.
+   */
+  virtual void StartListening();
+
+  /**
+   * Stop listening events on 3DConnexion device.
+   */
+  virtual void StopListening();
+
+  /**
+   * timer event slot
+   */
+  virtual void TimerEvent(int timerId);
 
 protected:
   // constructor
   QVTKInteractor();
   // destructor
-  ~QVTKInteractor();
+  ~QVTKInteractor() override;
+
+  // create a Qt Timer
+  int InternalCreateTimer(int timerId, int timerType, unsigned long duration) override;
+  // destroy a Qt Timer
+  int InternalDestroyTimer(int platformTimerId) override;
+
 private:
 
-  // the timer
-  QTimer mTimer;
-  
+  QVTKInteractorInternal* Internal;
+
   // unimplemented copy
   QVTKInteractor(const QVTKInteractor&);
   // unimplemented operator=
@@ -299,6 +281,36 @@ private:
 
 };
 
+// .NAME QVTKInteractorAdapter - A QEvent translator.
+// .SECTION Description
+// QVTKInteractorAdapter translates QEvents and send them to a
+// vtkRenderWindowInteractor.
+class QVTKInteractorAdapter : public QObject
+{
+  Q_OBJECT
+public:
+  // Description:
+  // Constructor: takes QObject parent
+  QVTKInteractorAdapter(QObject* parent);
+
+  // Description:
+  // Destructor
+  ~QVTKInteractorAdapter() override;
+
+  // Description:
+  // Set the device pixel ration, this defaults to 1, but in Qt 5 can be 2.
+  void SetDevicePixelRatio(int ratio, vtkRenderWindowInteractor* iren = nullptr);
+  int GetDevicePixelRatio() { return this->DevicePixelRatio; }
+
+  // Description:
+  // Process a QEvent and send it to the interactor
+  // returns whether the event was recognized and processed
+  bool ProcessEvent(QEvent* e, vtkRenderWindowInteractor* iren);
+
+protected:
+  int AccumulatedDelta;
+  int DevicePixelRatio;
+};
 
 #endif
 

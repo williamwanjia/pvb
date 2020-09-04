@@ -1,85 +1,68 @@
-# create pipeline
-
-#   create a hue lookup table
-vtkLookupTable lut
-# blue to red
-    lut SetHueRange  0.66667 0.0
-    lut Build
-
-# create black to white colormap
-vtkLookupTable lbw
-#  black to white
-    lbw SetHueRange  0 0.0
-    lbw SetSaturationRange 0 0
-    lbw SetValueRange 0 1
-
-vtkStructuredPointsReader reader
-    reader SetFileName "data1.vtk"
-    reader Update
-
-#reader needed otherwise range 0..1
-    set valuerange [[reader GetOutput] GetScalarRange]
-    set minv [lindex $valuerange 0]
-    set maxv [lindex $valuerange 1]
-#    puts "data range  $minv .. $maxv"
-
-    set dims [[reader GetOutput] GetDimensions]
-    set dim1 [lindex $dims 0]
-    set dim2 [lindex $dims 1]
-    set dim3 [lindex $dims 2]
-#    puts "dim1 = $dim1 dim2 = $dim2"
-
-# volgende echt nodig ...
-# vtkStructuredPointsGeometryFilter plane
-vtkImageDataGeometryFilter plane
-    plane SetInput [reader GetOutput]
-# SetExtent not needed ..
-
-vtkWarpScalar warp
-    warp SetInput [plane GetOutput]
-    warp UseNormalOn
-    warp SetNormal 0.0 0.0 1
-    warp SetScaleFactor 1
-vtkCastToConcrete caster
-    caster SetInput [warp GetOutput]
-vtkPolyDataNormals normals
-    normals SetInput [caster GetPolyDataOutput]
-    normals SetFeatureAngle 60
-vtkPolyDataMapper planeMapper
-    planeMapper SetInput [normals GetOutput]
-    planeMapper SetLookupTable lut
-    eval planeMapper SetScalarRange [[reader GetOutput] GetScalarRange]
-
-vtkTransform transform
-    transform Scale 0.02 0.02 0.02
-
-vtkActor dataActor
-    dataActor SetMapper planeMapper
-    dataActor SetUserMatrix [transform GetMatrix]
-#    dataActor SetOrigin -10.0 -10.0 0.0
-#    dataActor SetScale  0.2
-
-#vtkTextMapper textMapper
-#    textMapper SetInput "hallo"
 #
-#vtkActor textActor
-#    textActor SetMapper textMapper
-
-# assign our actor to the renderer
-#   renderer ResetCamera
-#   renderer SetViewport 0.3 0.3 0.7 0.7
-vtkRenderer renderer
-renderer AddActor dataActor
-renderer SetBackground 1 1 1
-renWin AddRenderer renderer
-
-#    renderer AddActor textActor
-set cam1 [renderer GetActiveCamera]
+# This simple example shows how to do basic rendering and pipeline
+# creation.
 #
-# $cam1 Dolly 0.5
-$cam1 ParallelProjectionOff
-# $cam1 SetDistance 10.0
-# $cam1 Zoom 0.5
-dataActor RotateY 35
-# renWin Render
+# We start off by loading some Tcl modules. One is the basic VTK library;
+# the second is a package for rendering, and the last includes a set
+# of color definitions.
+#
+#package require vtk
+#package require vtkinteraction
+#package require vtktesting
 
+# This creates a polygonal cylinder model with eight circumferential facets.
+#
+vtkCylinderSource cylinder
+    cylinder SetResolution 8
+
+# The mapper is responsible for pushing the geometry into the graphics
+# library. It may also do color mapping, if scalars or other attributes
+# are defined.
+#
+vtkPolyDataMapper cylinderMapper
+    cylinderMapper SetInputConnection [cylinder GetOutputPort]
+
+# The actor is a grouping mechanism: besides the geometry (mapper), it
+# also has a property, transformation matrix, and/or texture map.
+# Here we set its color and rotate it -22.5 degrees.
+vtkActor cylinderActor
+    cylinderActor SetMapper cylinderMapper
+    eval [cylinderActor GetProperty] SetColor $tomato
+    cylinderActor RotateX  30.0
+    cylinderActor RotateY -45.0
+
+# Create the graphics structure. The renderer renders into the
+# render window. The render window interactor captures mouse events
+# and will perform appropriate camera or actor manipulation
+# depending on the nature of the events.
+#
+vtkRenderer ren1
+#vtkGenericOpenGLRenderWindow renWin
+    renWin AddRenderer ren1
+
+# Add the actors to the renderer, set the background and size
+#
+ren1 AddActor cylinderActor
+ren1 SetBackground 0.1 0.2 0.4
+#renWin SetSize 100 30
+
+# The next line associates a Tcl proc with a "keypress-u" event
+# in the rendering window. In this case the proc deiconifies the
+# .vtkInteract Tk form that was defined when we loaded
+# "package require vtkinteraction".
+iren AddObserver UserEvent {wm deiconify .vtkInteract}
+
+# This allows the interactor to initialize itself. It has to be
+# called before an event loop. In this example, we allow Tk to
+# start the event loop (this is done automatically by Tk after
+# the user script is executed).
+iren Initialize
+
+# We'll zoom in a little by accessing the camera and invoking a "Zoom"
+# method on it.
+ren1 ResetCamera
+[ren1 GetActiveCamera] Zoom 1.5
+renWin Render
+
+# prevent the tk window from showing up then start the event loop
+wm withdraw .

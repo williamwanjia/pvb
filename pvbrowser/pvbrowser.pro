@@ -103,50 +103,20 @@ SOURCES      += tkAppInit.cpp \
                 pvVtkTclWidget.cpp \
                 QVTKWidget.cpp
 
-INCLUDEPATH  += /usr/local/include/vtk-5.10
 INCLUDEPATH  += /usr/include/tcl8.5
-LIBS += /usr/local/lib/vtk-5.10/libvtkCommon.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkCommonTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkDICOMParser.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkexoIIc.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkexpat.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkFiltering.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkFilteringTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkfreetype.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkftgl.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkGenericFiltering.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkGenericFilteringTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkGraphics.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkGraphicsTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkHybrid.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkHybridTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkImaging.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkImagingTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkIO.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkIOTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkjpeg.so
-#LIBS += /usr/local/lib/vtk-5.10/libvtkMPEG2Encode.so # commented out for vtk-5.10
-LIBS += /usr/local/lib/vtk-5.10/libvtkNetCDF.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkpng.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkRendering.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkRenderingTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtksys.so
-LIBS += /usr/local/lib/vtk-5.10/libvtktiff.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkVolumeRendering.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkVolumeRenderingTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkWidgets.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkWidgetsTCL.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkzlib.so
+
+LIBS += -L/usr/local/lib
+SHARED_LIB_FILES = $$files(/usr/local/lib/libvtk*.so)
+for(FILE, SHARED_LIB_FILES) {
+        BASENAME = $$basename(FILE)
+        BASENAME = $$replace(BASENAME,libvtk,vtk)
+        LIBS += -l$$replace(BASENAME,8.1.so,8.1)
+    }
+INCLUDEPATH += /usr/local/include/vtk-8.1
+
 LIBS += /usr/lib/x86_64-linux-gnu/libtcl8.5.so
 LIBS += /usr/lib/x86_64-linux-gnu/libX11.so.6
-LIBS += /usr/local/lib/vtk-5.10/libvtksqlite.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkNetCDF_cxx.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkNetCDF.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkhdf5.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkhdf5_hl.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkverdict.so
-LIBS += /usr/local/lib/vtk-5.10/libvtkmetaio.so
-LIBS += /usr/local/lib/vtk-5.10/libLSDyna.so
+
 }
 ### end USE_VTK ###############################################
 android-g++ {

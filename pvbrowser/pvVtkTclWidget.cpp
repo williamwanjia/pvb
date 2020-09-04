@@ -21,10 +21,13 @@
 #include <QMouseEvent>
 #include <vtkActor.h>
 #include <vtkRenderer.h>
-#include <vtkRenderWindow.h>
+#include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkPolyDataMapper.h>
 #include "tcputil.h"
 #include <stdarg.h>
+
+#include "vtkAutoInit.h"
+VTK_MODULE_INIT(vtkRenderingOpenGL2); // VTK was built with vtkRenderingOpenGL2
 
 extern OPT opt;
 
@@ -66,7 +69,7 @@ pvVtkTclWidget::pvVtkTclWidget(QWidget *parent, const char *name, int Id, int *s
 {
   int error;
   char buf[80];
-  vtkRenderWindow *temp0;
+  vtkGenericOpenGLRenderWindow *temp0;
 
   tclcommand = NULL; 
   interp = NULL;
@@ -97,8 +100,9 @@ pvVtkTclWidget::pvVtkTclWidget(QWidget *parent, const char *name, int Id, int *s
   interpret("package require vtk");
   interpret("package require vtkinteraction");
   interpret("package require vtktesting");
-  interpret("vtkRenderWindow renWin");
+  interpret("vtkGenericOpenGLRenderWindow renWin");
   sprintf(buf,"renWin SetSize %d %d",width(),height());
+  printf("cmd: %s", buf);
   interpret(buf);
 
   // create sandbox
@@ -116,10 +120,12 @@ pvVtkTclWidget::pvVtkTclWidget(QWidget *parent, const char *name, int Id, int *s
   if(Tcl_DeleteCommand(interp,"pid")       == -1) printf("could not delete Tcl pid\n");
 
   error = 0;
-  temp0 = (vtkRenderWindow *)(vtkTclGetPointerFromObject("renWin",(char *) "vtkRenderWindow",interp,error));
+  temp0 = (vtkGenericOpenGLRenderWindow *)(vtkTclGetPointerFromObject("renWin",(char *) "vtkGenericOpenGLRenderWindow",interp,error));
+  printf("vtkTclGetPointerFromObject\n");
   if(!error && temp0 != NULL)
   {
-    if(opt.arg_debug) printf("Setting Tcl interp\n");
+    //if(opt.arg_debug)
+    printf("Setting Tcl interp\n");
     SetRenderWindow(temp0);
     Tcl_ResetResult(interp);
   }
@@ -158,8 +164,7 @@ void pvVtkTclWidget::interpret(const char *format, ...)
 #endif
 #ifdef PVWIN32
     //tclcommand->SetStringCommand(buf);
-    if(tclcommand->StringCommand) { delete [] tclcommand->StringCommand; }
-    tclcommand->StringCommand = new char[strlen(buf)+1];
+Tcl_EvalFile    tclcommand-Tcl_EvalFileTcl_EvalFile>StringCommand = new char[strlen(buf)+1];
     strcpy(tclcommand->StringCommand, buf);
 #endif
     tclcommand->Execute(NULL, 0, NULL);
@@ -202,18 +207,3 @@ void pvVtkTclWidget::mouseReleaseEvent(QMouseEvent *event)
   QVTKWidget::mouseReleaseEvent(event);
 }
 
-void pvVtkTclWidget::enterEvent(QEvent *event)
-{
-  char buf[100];
-  sprintf(buf, "mouseEnterLeave(%d,1)\n",id);
-  tcp_send(s,buf,strlen(buf));
-  QVTKWidget::enterEvent(event);
-}
-
-void pvVtkTclWidget::leaveEvent(QEvent *event)
-{
-  char buf[100];
-  sprintf(buf, "mouseEnterLeave(%d,0)\n",id);
-  tcp_send(s,buf,strlen(buf));
-  QVTKWidget::leaveEvent(event);
-}

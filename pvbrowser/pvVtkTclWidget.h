@@ -37,7 +37,7 @@
   *@author R. Lehrig
   */
 
-class pvVtkTclWidget : public QVTKWidget
+class pvVtkTclWidget : public QVTKOpenGLWidget
 {
   Q_OBJECT
 public: 

@@ -1890,14 +1890,14 @@ void Interpreter::interpreth(const char *command)
       QDrawWidget *p = (QDrawWidget *) all[i]->w;
       if(p != NULL) p->htmlOrSvgDump(filename.toUtf8());
     }
-    else if(all[i]->type == TQTextBrowser)
+    /*else if(all[i]->type == TQTextBrowser)
     {
       QString filename;
       if(strstr(text.toUtf8(),"..") != NULL) filename = temp + "suspicious.dat";
       else                                   filename = temp + text;
       MyTextBrowser *p = (MyTextBrowser *) all[i]->w;
       if(p != NULL) p->htmlOrSvgDump(filename.toUtf8());
-    }
+    }*/
     else if(all[i]->type == TQCustomWidget)
     {
       QWidget *w = all[i]->w;
@@ -2161,12 +2161,12 @@ void Interpreter::interpretm(const char *command)
     sscanf(command,"moveContent(%d,%d",&i,&pos);
     if(i < 0) return;
     if(i >= nmax) return;
-    if(all[i]->type == TQTextBrowser)
+    /*if(all[i]->type == TQTextBrowser)
     {
       MyTextBrowser *ptr = (MyTextBrowser *) all[i]->w;
       if(ptr != NULL) ptr->moveContent(pos);
     }
-    else if(all[i]->type == TQCustomWidget)
+    else*/ if(all[i]->type == TQCustomWidget)
     {
       QWidget *w = all[i]->w;
       if(w != NULL) 
@@ -2205,12 +2205,12 @@ void Interpreter::interpretm(const char *command)
     else if(cur == PV::Right)             cursor = QTextCursor::Right;
     else if(cur == PV::WordRight)         cursor = QTextCursor::WordRight;
 
-    if(all[i]->type == TQTextBrowser)
+    /*if(all[i]->type == TQTextBrowser)
     {
       MyTextBrowser *w = (MyTextBrowser *) all[i]->w;
       w->tbMoveCursor(cur);
     }
-    else if(all[i]->type == TQMultiLineEdit)
+    else*/ if(all[i]->type == TQMultiLineEdit)
     {
       MyMultiLineEdit *w = (MyMultiLineEdit *) all[i]->w;
       w->moveCursor((QTextCursor::MoveOperation) cursor);
@@ -2367,7 +2367,7 @@ void Interpreter::interpretp(const char *command)
     sscanf(command,"printHTML(%d)",&i);
     if(i < 0) return;
     if(i >= nmax) return;
-    if(all[i]->type == TQTextBrowser)
+    /*if(all[i]->type == TQTextBrowser)
     {
       MyTextBrowser *ptr = (MyTextBrowser *) all[i]->w;
       QPrinter printer;
@@ -2383,7 +2383,7 @@ void Interpreter::interpretp(const char *command)
         }
       }
     }
-    else if(all[i]->type == TQCustomWidget)
+    else*/ if(all[i]->type == TQCustomWidget)
     {
       QWidget *w = all[i]->w;
       if(w != NULL) 
@@ -3511,8 +3511,10 @@ void Interpreter::interprets(const char *command)
 #ifdef USE_VTK
           else if(all[i]->type == TQVtk)
           {
+            if(opt.arg_debug) printf("setGeometry TQVtk end\n");
             pvVtkTclWidget *iw = (pvVtkTclWidget *) all[i]->w;
             if(iw != NULL) iw->setGeometry(x,y,w,h);
+            if(opt.arg_debug) printf("End setGeometry TQVtk end\n");
           }
 #endif
 #ifndef NO_QWT
@@ -4424,7 +4426,7 @@ void Interpreter::interprets(const char *command)
           }
           if(i < 0) return;
           if(i >= nmax) return;
-          if(all[i]->type == TQTextBrowser)
+          /*if(all[i]->type == TQTextBrowser)
           {
             MyTextBrowser *t = (MyTextBrowser *) all[i]->w;
             if(t != NULL) 
@@ -4432,7 +4434,7 @@ void Interpreter::interprets(const char *command)
               t->setSOURCE( temp, text);
             }
           }
-          else if(all[i]->type == TQCustomWidget)
+          else*/ if(all[i]->type == TQCustomWidget)
           {
             QWidget *w = all[i]->w;
             if(w != NULL) 
@@ -4847,7 +4849,7 @@ void Interpreter::interprets(const char *command)
             MyGroupBox *c = (MyGroupBox *) all[i]->w;
             if(c != NULL) c->setTitle(text);
           }
-          else if(all[i]->type == TQTextBrowser)
+          /*else if(all[i]->type == TQTextBrowser)
           {
             MyTextBrowser *c = (MyTextBrowser *) all[i]->w;
             // mur was here: make cursor not jumping
@@ -4873,7 +4875,7 @@ void Interpreter::interprets(const char *command)
               }  
               c->tbSetText(text);
             }
-          }
+          }*/
           else if(all[i]->type == TQCustomWidget)
           {
             QWidget *w = all[i]->w;
@@ -5239,11 +5241,11 @@ void Interpreter::interprets(const char *command)
             QDateTimeEdit *e = (QDateTimeEdit *) all[i]->w;
             if(e != NULL) e->setTime(QTime(hour,minute,second,msec));
           }
-          else if(all[i]->type == TQwtAnalogClock)
+          /*else if(all[i]->type == TQwtAnalogClock)
           {
             MyQwtAnalogClock *e = (MyQwtAnalogClock *) all[i]->w;
             if(e != NULL) e->setTime(QTime(hour,minute,second));
-          }
+          }*/
           else if(all[i]->type == TQCustomWidget)
           {
             QWidget *w = all[i]->w;
@@ -5364,7 +5366,7 @@ void Interpreter::interprets(const char *command)
       case 'Y':
         break;
       case 'Z':
-        if(strncmp(command,"setZoomFactor(",14) == 0) // set zoom factor of HTML page
+        /*if(strncmp(command,"setZoomFactor(",14) == 0) // set zoom factor of HTML page
         {
 #if QT_VERSION >= 0x040500
           float factor;
@@ -5377,7 +5379,7 @@ void Interpreter::interprets(const char *command)
           }
 #endif
         }
-        else if(all[i]->type == TQCustomWidget)
+        else*/ if(all[i]->type == TQCustomWidget)
         {
           QWidget *w = all[i]->w;
           if(w != NULL) 
@@ -5398,7 +5400,7 @@ void Interpreter::interprets(const char *command)
     if(i >= nmax) return;
     get_text(command,text);
 #if QT_VERSION >= 0x040700    
-    if(all[i]->type == TQTextBrowser)
+    /*if(all[i]->type == TQTextBrowser)
     {
       MyTextBrowser *tb = (MyTextBrowser *) all[i]->w;
       if(tb != NULL) 
@@ -5406,7 +5408,7 @@ void Interpreter::interprets(const char *command)
         tb->tbScrollToAnchor(text);
       }  
     }
-    else if(all[i]->type == TQCustomWidget)
+    else*/ if(all[i]->type == TQCustomWidget)
     {
       QWidget *w = all[i]->w;
       if(w != NULL) 
@@ -5901,6 +5903,7 @@ void Interpreter::interpretv(const char *command)
 #ifdef USE_VTK
   if(strncmp(command,"vtkTcl(",7) == 0) // interpret a VTK Tcl command
   {
+    if(opt.arg_debug) printf("vtkTcl TQVtk end\n");
     char text[MAX_PRINTF_LENGTH];
     sscanf(command,"vtkTcl(%d)",&i);
     tcp_rec(s,text,sizeof(text));
@@ -5918,6 +5921,7 @@ void Interpreter::interpretv(const char *command)
   }
   else if(strncmp(command,"vtkTclScript(",13) == 0) // interpret a VTK Tcl file
   {
+    if(opt.arg_debug) printf("vtkTclScript TQVtk end\n");
     sscanf(command,"vtkTclScript(%d,",&i);
     get_text(command,text);
     if(i < 0) return;
@@ -5926,6 +5930,7 @@ void Interpreter::interpretv(const char *command)
     {
       pvVtkTclWidget *w = (pvVtkTclWidget *) all[i]->w;
       if(w != NULL) w->interpretFile(text.toUtf8());
+      if(opt.arg_debug) printf("End vtkTclScript TQVtk end\n");
     }
   }
 #endif
@@ -7077,6 +7082,7 @@ void Interpreter::interpretz(const char *command)
 
 void Interpreter::interpretQ(const char *command)
 {
+  if(opt.arg_debug) printf("Create %s\n", command);
   if(strncmp(command,"QWidget(",8) == 0) // create a new QWidget
   {
     sscanf(command,"QWidget(%d,%d)",&i,&p);
@@ -7273,6 +7279,7 @@ void Interpreter::interpretQ(const char *command)
 #ifdef USE_VTK
   else if(strncmp(command,"QVtkTclWidget(",14) == 0) // create a new pvVtkTclWidget
   {
+    if(opt.arg_debug) printf("create a new pvVtkTclWidget TQVtk end\n");
     sscanf(command,"QVtkTclWidget(%d,%d)",&i,&p);
     if(i < 0) return;
     if(i >= nmax) return;
@@ -7282,6 +7289,7 @@ void Interpreter::interpretQ(const char *command)
 	  // cmeyer: ----------------------------------------------
     all[i]->w = (QWidget *) new pvVtkTclWidget(parent,"vtkWidget",i,s);
     all[i]->type = TQVtk;
+    if(opt.arg_debug) printf("End create a new pvVtkTclWidget TQVtk end\n");
   }
 #endif
 #ifndef NO_QWT
@@ -7605,7 +7613,7 @@ void Interpreter::interpretQ(const char *command)
     all[i]->w = (QWidget *) new MyMultiLineEdit(s,i,editable,maxLines,parent);
     all[i]->type = TQMultiLineEdit;
   }
-  else if(strncmp(command,"QTextBrowser(",13) == 0) // create a new QTextBrowser
+  /*else if(strncmp(command,"QTextBrowser(",13) == 0) // create a new QTextBrowser
   {
     sscanf(command,"QTextBrowser(%d,%d",&i,&p);
     if(i < 0) return;
@@ -7616,7 +7624,7 @@ void Interpreter::interpretQ(const char *command)
     // cmeyer: ----------------------------------------------
     all[i]->w = (QWidget *) new MyTextBrowser(s,i,parent);
     all[i]->type = TQTextBrowser;
-  }
+  }*/
   else if(strncmp(command,"QListView(",10) == 0) // create a new QListView
   {
     sscanf(command,"QListView(%d,%d",&i,&p);

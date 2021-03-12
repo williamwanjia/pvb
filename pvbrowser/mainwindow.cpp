@@ -21,7 +21,7 @@
 #endif
 #include "opt.h"
 #include "dlgopt.h"
-#include "dlgtextbrowser.h"
+//#include "dlgtextbrowser.h"
 #include "tcputil.h"
 #include "mainwindow.h"
 

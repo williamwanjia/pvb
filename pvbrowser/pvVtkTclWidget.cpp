@@ -16,12 +16,17 @@
  ***************************************************************************/
 
 #include "pvdefine.h"
+
+#include "vtkAutoInit.h"
+VTK_MODULE_INIT(vtkRenderingOpenGL2)
+VTK_MODULE_INIT(vtkInteractionStyle)
+
 #include "pvVtkTclWidget.h"
 #include "opt.h"
 #include <QMouseEvent>
 #include <vtkActor.h>
 #include <vtkRenderer.h>
-#include <vtkRenderWindow.h>
+#include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkPolyDataMapper.h>
 #include "tcputil.h"
 #include <stdarg.h>
@@ -62,42 +67,62 @@ static int rlvsnprintf(char *text, int len, const char *format, va_list ap)
 }
 
 pvVtkTclWidget::pvVtkTclWidget(QWidget *parent, const char *name, int Id, int *sock) 
-               : QVTKWidget(parent)
+               : QVTKOpenGLWidget(parent)
 {
+  
   int error;
   char buf[80];
-  vtkRenderWindow *temp0;
-
+  
+  vtkGenericOpenGLRenderWindow *temp0;
+  
   tclcommand = NULL; 
   interp = NULL;
   if(name != NULL) setObjectName(name);
+
+  Tcl_FindExecutable(NULL);
+
   interp = Tcl_CreateInterp();
   if(interp == NULL) return;
+  
 #ifdef PVUNIX
   tclcommand = vtkTclCommand::New();
 #endif
 #ifdef PVWIN32
-  tclcommand = newVtkTclCommand();
-  //tclcommand = vtkTclCommand::New();
+  //tclcommand = newVtkTclCommand();
+  tclcommand = vtkTclCommand::New();
   //tclcommand = new vtkTclCommand();
 #endif
+  
   if(tclcommand == NULL)
   {
     printf("ERROR: pvVtkTclWidget::tclcommand == NULL\n");
     Tcl_DeleteInterp(interp);
     return;
   }
+  
   tclcommand->SetInterp(interp);
+  if(opt.arg_debug) printf("SetInterp finished\n");
+  
 #ifdef PVUNIX
   Tcl_AppInit(interp);
 #endif
 #ifdef PVWIN32
-  Tcl_Init(interp);
+  const char* nameofexec = Tcl_GetNameOfExecutable();
+  if(opt.arg_debug) printf("nameofexec %s\n", nameofexec);
+  if(opt.arg_debug) printf("TCL_VERSION %s\n", TCL_VERSION);
+  
+  Tcl_AppInit(interp);
+  if(opt.arg_debug) printf("Tcl_AppInit finished\n");
 #endif
+  if(opt.arg_debug) printf("package require vtk\n");
   interpret("package require vtk");
+  if(opt.arg_debug) printf("package require vtkinteraction\n");
   interpret("package require vtkinteraction");
+  if(opt.arg_debug) printf("package require vtktesting\n");
   interpret("package require vtktesting");
-  interpret("vtkRenderWindow renWin");
+
+  if(opt.arg_debug) printf("vtkGenericOpenGLRenderWindow renWin\n");
+  interpret("vtkGenericOpenGLRenderWindow renWin");
   sprintf(buf,"renWin SetSize %d %d",width(),height());
   interpret(buf);
 
@@ -116,13 +141,17 @@ pvVtkTclWidget::pvVtkTclWidget(QWidget *parent, const char *name, int Id, int *s
   if(Tcl_DeleteCommand(interp,"pid")       == -1) printf("could not delete Tcl pid\n");
 
   error = 0;
-  temp0 = (vtkRenderWindow *)(vtkTclGetPointerFromObject("renWin",(char *) "vtkRenderWindow",interp,error));
+  temp0 = (vtkGenericOpenGLRenderWindow *)(vtkTclGetPointerFromObject("renWin",(char *) "vtkGenericOpenGLRenderWindow",interp,error));
   if(!error && temp0 != NULL)
   {
     if(opt.arg_debug) printf("Setting Tcl interp\n");
     SetRenderWindow(temp0);
     Tcl_ResetResult(interp);
   }
+  else {
+    if(opt.arg_debug) printf("Could not set renderwindow! Tcl interp\n");
+  }
+  
   id = Id;
   s  = sock;
 }
@@ -157,15 +186,18 @@ void pvVtkTclWidget::interpret(const char *format, ...)
     tclcommand->SetStringCommand(buf);
 #endif
 #ifdef PVWIN32
-    //tclcommand->SetStringCommand(buf);
-    if(tclcommand->StringCommand) { delete [] tclcommand->StringCommand; }
-    tclcommand->StringCommand = new char[strlen(buf)+1];
-    strcpy(tclcommand->StringCommand, buf);
+    tclcommand->SetStringCommand(buf);
+    //if(tclcommand->StringCommand) { delete [] tclcommand->StringCommand; }
+    //tclcommand->StringCommand = new char[strlen(buf)+1];
+    //strcpy(tclcommand->StringCommand, buf);
 #endif
     tclcommand->Execute(NULL, 0, NULL);
   }
 
   delete [] buf;
+
+  //int res = Tcl_EvalEx(interp, format, -1, TCL_EVAL_GLOBAL);
+  //printf("interpret tcl res: %d", res);
 }
 
 void pvVtkTclWidget::interpretFile(const char *filename)
@@ -182,38 +214,43 @@ void pvVtkTclWidget::mouseMoveEvent(QMouseEvent *event)
 {
   char buf[100];
   sprintf( buf, "QPlotMouseMoved(%d,%d,%d)\n",id, event->x(), event->x());
+  if(opt.arg_debug) printf("%s\n",buf);
   tcp_send(s,buf,strlen(buf));
-  QVTKWidget::mouseMoveEvent(event);
+  QVTKOpenGLWidget::mouseMoveEvent(event);
 }
 
 void pvVtkTclWidget::mousePressEvent(QMouseEvent *event)
 {
   char buf[100];
   sprintf( buf, "QPlotMousePressed(%d,%d,%d)\n",id, event->x(), event->y());
+  if(opt.arg_debug) printf("%s\n",buf);
   tcp_send(s,buf,strlen(buf));
-  QVTKWidget::mousePressEvent(event);
+  QVTKOpenGLWidget::mousePressEvent(event);
 }
 
 void pvVtkTclWidget::mouseReleaseEvent(QMouseEvent *event)
 {
   char buf[100];
   sprintf( buf, "QPlotMouseReleased(%d,%d,%d)\n",id, event->x(), event->y());
+  if(opt.arg_debug) printf("%s\n",buf);
   if(underMouse()) tcp_send(s,buf,strlen(buf));
-  QVTKWidget::mouseReleaseEvent(event);
+  QVTKOpenGLWidget::mouseReleaseEvent(event);
 }
 
 void pvVtkTclWidget::enterEvent(QEvent *event)
 {
   char buf[100];
   sprintf(buf, "mouseEnterLeave(%d,1)\n",id);
+  if(opt.arg_debug) printf("%s\n",buf);
   tcp_send(s,buf,strlen(buf));
-  QVTKWidget::enterEvent(event);
+  QVTKOpenGLWidget::enterEvent(event);
 }
 
 void pvVtkTclWidget::leaveEvent(QEvent *event)
 {
   char buf[100];
   sprintf(buf, "mouseEnterLeave(%d,0)\n",id);
+  if(opt.arg_debug) printf("%s\n",buf);
   tcp_send(s,buf,strlen(buf));
-  QVTKWidget::leaveEvent(event);
+  QVTKOpenGLWidget::leaveEvent(event);
 }

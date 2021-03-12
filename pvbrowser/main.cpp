@@ -24,6 +24,13 @@
 #include "mainwindow.h"
 #include "opt.h"
 #include "tcputil.h"
+#include "QVTKOpenGLWidget.h"
+
+#include "vtkAutoInit.h"
+VTK_MODULE_INIT(vtkRenderingOpenGL2); // VTK was built with vtkRenderingOpenGL2
+VTK_MODULE_INIT(vtkInteractionStyle);
+VTK_MODULE_INIT(vtkRenderingFreeType);
+VTK_MODULE_INIT(vtkRenderingContextOpenGL2);
 
 extern OPT opt;
 
@@ -204,6 +211,9 @@ int pvbinit()
 #else
 int main(int argc, char *argv[])
 {
+  QSurfaceFormat::setDefaultFormat(QVTKOpenGLWidget::defaultFormat());
+  QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+
   Q_INIT_RESOURCE(pvbrowser);
 #ifdef USE_SYMBIAN
     //display args in debug console

@@ -57,6 +57,28 @@ static void vtkTkAppInitEnableMSVCDebugHook();
 EXTERN Tcl_Obj* TclGetLibraryPath _ANSI_ARGS_((void));
 EXTERN void TclSetLibraryPath _ANSI_ARGS_((Tcl_Obj * pathPtr));
 
+#ifndef vtkTkAppInitConfigure_h
+#define vtkTkAppInitConfigure_h
+
+/* Where the VTK Tcl packages can be found */
+#define VTK_INSTALL_TCL_DIR "@VTK_INSTALL_TCL_DIR@"
+
+#endif
+
+
+#ifdef VTK_TCL_TK_COPY_SUPPORT_LIBRARY
+#include <sys/stat.h>
+#endif
+
+#ifdef VTK_USE_TK
+# include "vtkTk.h"
+#else
+# include "vtkTcl.h"
+#endif
+
+#include "vtkTclUtil.h"
+
+
 /*
  *----------------------------------------------------------------------
  *

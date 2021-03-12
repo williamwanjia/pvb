@@ -423,6 +423,12 @@ void QVTKOpenGLWidget::paintGL()
   {
     return;
   }
+}
+
+//-----------------------------------------------------------------------------
+void QVTKWidget::mouseReleaseEvent(QMouseEvent* event)
+{
+  emit mouseEvent(event);
 
   if (!this->FBO
     || this->FBO->handle() != this->RenderWindow->GetDefaultFrameBufferId())

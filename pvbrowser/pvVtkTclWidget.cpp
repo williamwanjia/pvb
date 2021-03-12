@@ -31,6 +31,9 @@ VTK_MODULE_INIT(vtkInteractionStyle)
 #include "tcputil.h"
 #include <stdarg.h>
 
+#include "vtkAutoInit.h"
+VTK_MODULE_INIT(vtkRenderingOpenGL2); // VTK was built with vtkRenderingOpenGL2
+
 extern OPT opt;
 
 static int rlvsnprintf(char *text, int len, const char *format, va_list ap)
@@ -124,6 +127,7 @@ pvVtkTclWidget::pvVtkTclWidget(QWidget *parent, const char *name, int Id, int *s
   if(opt.arg_debug) printf("vtkGenericOpenGLRenderWindow renWin\n");
   interpret("vtkGenericOpenGLRenderWindow renWin");
   sprintf(buf,"renWin SetSize %d %d",width(),height());
+  printf("cmd: %s", buf);
   interpret(buf);
 
   // create sandbox
@@ -144,7 +148,8 @@ pvVtkTclWidget::pvVtkTclWidget(QWidget *parent, const char *name, int Id, int *s
   temp0 = (vtkGenericOpenGLRenderWindow *)(vtkTclGetPointerFromObject("renWin",(char *) "vtkGenericOpenGLRenderWindow",interp,error));
   if(!error && temp0 != NULL)
   {
-    if(opt.arg_debug) printf("Setting Tcl interp\n");
+    //if(opt.arg_debug)
+    printf("Setting Tcl interp\n");
     SetRenderWindow(temp0);
     Tcl_ResetResult(interp);
   }

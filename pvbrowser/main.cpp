@@ -32,6 +32,15 @@ VTK_MODULE_INIT(vtkInteractionStyle);
 VTK_MODULE_INIT(vtkRenderingFreeType);
 VTK_MODULE_INIT(vtkRenderingContextOpenGL2);
 
+#ifdef USE_VTK
+#include "QVTKWidget.h"
+#include "vtkAutoInit.h"
+VTK_MODULE_INIT(vtkRenderingOpenGL2); // VTK was built with vtkRenderingOpenGL2
+VTK_MODULE_INIT(vtkInteractionStyle);
+VTK_MODULE_INIT(vtkRenderingFreeType);
+VTK_MODULE_INIT(vtkRenderingContextOpenGL2);
+#endif
+
 extern OPT opt;
 
 void init1(int ac, char **av)
@@ -226,6 +235,13 @@ int main(int argc, char *argv[])
     }
 #endif
   wsa(); // init windows sockets
+  
+  #ifdef USE_VTK
+  printf("init vtk");
+  QSurfaceFormat::setDefaultFormat(QVTKWidget::defaultFormat());
+  QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+  #endif
+
   QApplication app(argc, argv);
   QPixmap pm(splash);
   QSplashScreen *splash = new QSplashScreen(pm);
@@ -256,3 +272,5 @@ int main(int argc, char *argv[])
   return app.exec();
 }
 #endif
+
+
